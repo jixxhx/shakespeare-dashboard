@@ -4,24 +4,35 @@ import yfinance as yf
 import plotly.graph_objects as go
 
 # 1. 페이지 설정
-st.set_page_config(page_title="Shakespeare Dashboard", layout="wide")
-st.title("🎭 The Shakespeare Volatility Dashboard")
-st.write("Fiduciary Risk Management System: Automating Discipline through Data.")
+st.set_page_config(page_title="Shakespeare Dashboard by Jihu Park", layout="wide")
 
-# 2. 데이터 가져오기
+# 2. [추가됨] 사이드바: 제작자 정보 표시 (가장 눈에 잘 띔)
+with st.sidebar:
+    st.title("👨‍💻 Creator Profile")
+    st.markdown("**Developed by Jihu Park**")
+    st.markdown("Grade 12 | Future Quant/Investor")
+    st.info("This dashboard demonstrates my commitment to data-driven risk management.")
+    st.divider() # 구분선
+
+    # 기존 리스크 설정 패널
+    st.header("⚙️ Risk Control Panel")
+    target_per = st.number_input("Historical Avg PER Reference", value=9.31)
+
+# 메인 타이틀
+st.title("🎭 The Shakespeare Volatility Dashboard")
+st.markdown("**Project Owner: Jihu Park**") # [추가됨] 제목 바로 아래 이름 표시
+st.write("Fiduciary Risk Management System: Automating Discipline through Data.")
+st.markdown("---") # 구분선 추가
+
+# 3. 데이터 가져오기
 @st.cache_data
 def get_data():
     ticker = "^KS11"
-    # 데이터를 가져온 후 인덱스(날짜)의 시간대 정보를 제거하여 오류 방지
     data = yf.download(ticker, start="2024-01-01")
     data.index = data.index.tz_localize(None)
     return data
 
 df = get_data()
-
-# 3. 사이드바 설정 (포트폴리오 논리 반영)
-st.sidebar.header("Risk Control Panel")
-target_per = st.sidebar.number_input("Historical Avg PER Reference", value=9.31)
 
 # 4. 상단 지표 계산
 last_price = float(df['Close'].iloc[-1])
@@ -33,8 +44,8 @@ col1.metric("Current KOSPI", f"{last_price:,.2f}", f"{change:,.2f}")
 col2.metric("Portfolio Status", "Monitoring")
 col3.metric("Discipline Focus", "Humility over Hubris")
 
-# 5. 차트 시각화 (KOSPI Index)
-st.subheader("Market Trend and Exhaustion Analysis")
+# 5. 차트 시각화
+st.subheader("📉 Market Trend and Exhaustion Analysis")
 fig = go.Figure()
 
 # 메인 지수 라인
@@ -45,7 +56,7 @@ fig.add_trace(go.Scatter(
     line=dict(color='#1f77b4', width=2)
 ))
 
-# [핵심] 8월 22일 숏 진입 시점 표시 (빨간색 점선)
+# 8월 22일 숏 진입 시점
 entry_date = pd.Timestamp("2025-08-22")
 fig.add_vline(
     x=entry_date.timestamp() * 1000, 
@@ -55,8 +66,7 @@ fig.add_vline(
     annotation_position="top left"
 )
 
-# [핵심] 9.31 PER 기준선 추가 (초록색 실선)
-# 포트폴리오에서 언급한 가치 평가의 평형점(Equilibrium) 시각화
+# 9.31 PER 기준선
 fig.add_hline(
     y=3100, 
     line_dash="solid", 
@@ -65,7 +75,6 @@ fig.add_hline(
     annotation_position="bottom right"
 )
 
-# 차트 레이아웃 최적화
 fig.update_layout(
     xaxis_title="Date", 
     yaxis_title="Price (Index)", 
@@ -75,5 +84,7 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# 하단 메시지 (에세이 서사 연결)
+# 6. [추가됨] 하단 저작권 표시 (Footer)
+st.markdown("---")
+st.caption("© 2025 Jihu Park. All Rights Reserved. | Built with Python & Streamlit for University Application Portfolio.")
 st.info("System Note: This dashboard is designed to override psychological bias by providing objective valuation markers and historical risk thresholds.")
