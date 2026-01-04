@@ -1,48 +1,86 @@
-# 3. 데이터 가져오기
+import streamlit as st
+import pandas as pd
+import yfinance as yf
+import plotly.graph_objects as go
+
+# -----------------------------------------------------------
+# 1. 페이지 설정 (반드시 맨 처음에 와야 함)
+# -----------------------------------------------------------
+st.set_page_config(page_title="Shakespeare Dashboard by Jihu Park", layout="wide")
+
+# -----------------------------------------------------------
+# 2. 사이드바: 제작자 정보 (Jihu Park's Profile)
+# -----------------------------------------------------------
+with st.sidebar:
+    st.title("👨‍💻 Creator Profile")
+    st.markdown("**Developed by Jihu Park**")
+    st.markdown("Grade 12 | Future Quant/Investor")
+    st.info("This dashboard demonstrates my commitment to data-driven risk management.")
+    st.divider()
+
+    st.header("⚙️ Risk Control Panel")
+    target_per = st.number_input("Historical Avg PER Reference", value=9.31)
+
+# -----------------------------------------------------------
+# 3. 메인 타이틀
+# -----------------------------------------------------------
+st.title("🎭 The Shakespeare Volatility Dashboard")
+st.markdown("**Project Owner: Jihu Park**")
+st.write("Fiduciary Risk Management System: Automating Discipline through Data.")
+st.markdown("---")
+
+# -----------------------------------------------------------
+# 4. 데이터 가져오기 & 안전장치 (핵심 수정 부분)
+# -----------------------------------------------------------
 @st.cache_data
 def get_data():
     ticker = "^KS11"
-    # [수정팁] auto_adjust=True를 넣으면 데이터 구조가 더 깔끔해져서 에러가 줄어듭니다.
+    # auto_adjust=True로 설정하여 데이터 포맷을 통일합니다.
     data = yf.download(ticker, start="2024-01-01", auto_adjust=True)
     
-    # 데이터가 비어있을 경우를 대비해 예외 처리
+    # 데이터가 비어있으면 빈 껍데기를 반환합니다.
     if data.empty:
-        return pd.DataFrame() # 빈 껍데기 반환
+        return pd.DataFrame()
         
+    # 날짜 시간대 정보를 제거합니다.
     data.index = data.index.tz_localize(None)
     return data
 
 df = get_data()
 
-# [핵심 수정] 데이터가 텅 비었는지(Empty) 먼저 검사합니다.
+# [중요] 데이터가 텅 비었는지 확인하는 안전장치
 if df.empty:
-    st.error("⚠️ 데이터를 불러올 수 없습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
-    st.write("Debug Info: Yahoo Finance에서 데이터를 받아오지 못했습니다.")
-    st.stop() # 여기서 코드 실행을 멈춰서 빨간 에러창을 방지합니다.
+    st.error("⚠️ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
+    st.write("Tip: 야후 파이낸스 서버가 일시적으로 응답하지 않을 수 있습니다. 새로고침(F5) 해보세요.")
+    st.stop() # 여기서 멈춰서 빨간 에러창이 뜨는 것을 막습니다.
 
-# 4. 상단 지표 계산 (데이터가 있을 때만 실행됨)
+# -----------------------------------------------------------
+# 5. 지표 계산 및 시각화
+# -----------------------------------------------------------
 try:
-    # yfinance 버전에 따라 컬럼 형태가 다를 수 있어 안전하게 처리
+    # 컬럼 이름이 이중으로 되어있을 경우 정리 (yfinance 최신버전 대응)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
+    # 마지막 가격 가져오기
     last_price = float(df['Close'].iloc[-1])
     prev_price = float(df['Close'].iloc[-2])
     change = last_price - prev_price
 
+    # 상단 지표 표시
     col1, col2, col3 = st.columns(3)
     col1.metric("Current KOSPI", f"{last_price:,.2f}", f"{change:,.2f}")
     col2.metric("Portfolio Status", "Monitoring")
     col3.metric("Discipline Focus", "Humility over Hubris")
 
-    # 5. 차트 시각화
+    # 차트 그리기
     st.subheader("📉 Market Trend and Exhaustion Analysis")
     fig = go.Figure()
 
     # 메인 지수 라인
     fig.add_trace(go.Scatter(
         x=df.index, 
-        y=df['Close'], # .values.flatten() 없이 바로 넣는 게 더 안전합니다
+        y=df['Close'], 
         name="KOSPI Index", 
         line=dict(color='#1f77b4', width=2)
     ))
@@ -76,4 +114,11 @@ try:
     st.plotly_chart(fig, use_container_width=True)
 
 except Exception as e:
-    st.error(f"차트를 그리는 중 오류가 발생했습니다: {e}")
+    st.error(f"예상치 못한 오류가 발생했습니다: {e}")
+
+# -----------------------------------------------------------
+# 6. 하단 푸터 (Footer)
+# -----------------------------------------------------------
+st.markdown("---")
+st.caption("© 2025 Jihu Park. All Rights Reserved. | Built with Python & Streamlit for University Application Portfolio.")
+st.info("System Note: This dashboard is designed to override psychological bias by providing objective valuation markers and historical risk thresholds.")
