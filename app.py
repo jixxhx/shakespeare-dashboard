@@ -34,22 +34,25 @@ st.markdown("---")
 # -----------------------------------------------------------
 @st.cache_data
 def get_data():
-    ticker = "^KS11"
-    # auto_adjust=True로 설정하여 데이터 포맷을 통일합니다.
-    data = yf.download(ticker, start="2024-01-01", auto_adjust=True)
-    
-    # 데이터가 비어있으면 빈 껍데기를 반환합니다.
-    if data.empty:
-        return pd.DataFrame()
+    ticker = "^KS11" # 코스피 지수
+    try:
+        # auto_adjust=True로 설정하여 데이터 포맷을 통일합니다.
+        data = yf.download(ticker, start="2024-01-01", auto_adjust=True, progress=False)
         
-    # 날짜 시간대 정보를 제거합니다.
-    data.index = data.index.tz_localize(None)
-    return data
+        # 데이터가 비어있으면 빈 껍데기를 반환합니다.
+        if data.empty:
+            return pd.DataFrame()
+            
+        # 날짜 시간대 정보를 제거합니다 (Plotly 오류 방지)
+        data.index = data.index.tz_localize(None)
+        return data
+    except Exception:
+        return pd.DataFrame()
 
 df = get_data()
 
 # [중요] 데이터가 텅 비었는지 확인하는 안전장치
-if df.empty:
+if df is None or df.empty:
     st.error("⚠️ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
     st.write("Tip: 야후 파이낸스 서버가 일시적으로 응답하지 않을 수 있습니다. 새로고침(F5) 해보세요.")
     st.stop() # 여기서 멈춰서 빨간 에러창이 뜨는 것을 막습니다.
@@ -85,15 +88,18 @@ try:
         line=dict(color='#1f77b4', width=2)
     ))
 
-    # 8월 22일 숏 진입 시점
+    # 8월 22일 숏 진입 시점 (날짜 형식 호환성 강화)
     entry_date = pd.Timestamp("2025-08-22")
-    fig.add_vline(
-        x=entry_date.timestamp() * 1000, 
-        line_dash="dot", 
-        line_color="red", 
-        annotation_text="Aug 22 Case Study Entry",
-        annotation_position="top left"
-    )
+    
+    # 만약 데이터 기간 내에 해당 날짜가 포함되어 있다면 세로선 표시
+    if df.index.min() <= entry_date <= df.index.max():
+        fig.add_vline(
+            x=entry_date,  # timestamp() * 1000 대신 날짜 객체 자체를 넣는 게 더 안전합니다.
+            line_dash="dot", 
+            line_color="red", 
+            annotation_text="Aug 22 Case Study Entry",
+            annotation_position="top left"
+        )
 
     # 9.31 PER 기준선
     fig.add_hline(
